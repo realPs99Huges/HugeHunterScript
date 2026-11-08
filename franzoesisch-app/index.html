@@ -1,0 +1,41 @@
+<title>Carnet de Français</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=Playwrite+FR+Trad:wght@400&display=swap">
+<link rel="stylesheet" href="style.css">
+
+<div class="app">
+  <aside class="side">
+    <a href="#start" class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><b>Carnet</b><small>de français</small></span></a>
+    <nav class="nav" aria-label="Hauptnavigation">
+      <a href="#start" data-k="start"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Start</span></a>
+      <a href="#checkliste" data-k="checkliste"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/></svg><span>Checkliste</span></a>
+      <a href="#vokabeln" data-k="vokabeln"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h12v13H4zM8 4h12v13"/></svg><span>Vokabeln</span></a>
+      <a href="#klassenarbeit" data-k="klassenarbeit"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5"/></svg><span>Arbeit</span></a>
+      <a href="#mehr" data-k="mehr"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Mehr</span></a>
+    </nav>
+    <div class="topstats" id="topstats"></div>
+  </aside>
+  <main id="main" class="main" tabindex="-1"></main>
+</div>
+
+<div id="player" class="player" hidden role="dialog" aria-modal="true" aria-labelledby="pl-title">
+  <div class="pl-top">
+    <button type="button" class="iconbtn" id="pl-close" aria-label="Aufgabe schließen"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="pl-prog"><div class="pl-t"><b id="pl-title"></b><span id="pl-count"></span></div><div class="pl-track"><i id="pl-bar"></i></div></div>
+  </div>
+  <div class="pl-body" id="pl-body"></div>
+  <div class="pl-foot"><button type="button" class="btn good-b wide" id="pl-check" disabled>Prüfen</button></div>
+  <div id="pl-feedback" class="feedback" aria-live="polite"></div>
+</div>
+
+<div id="sheet" class="sheet" hidden><div class="sheet-card"><button type="button" class="iconbtn sheet-x" aria-label="Schließen"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><div id="sheet-body"></div></div></div>
+<div id="pop" class="pop" hidden role="dialog" aria-label="Übersetzung"></div>
+<div id="accents" class="accents" hidden aria-label="Akzente"></div>
+
+<script src="js/vocab.js"></script>
+<script src="js/verbs.js"></script>
+<script src="js/courses.js"></script>
+<script src="js/texts.js"></script>
+<script src="js/app.js"></script>
