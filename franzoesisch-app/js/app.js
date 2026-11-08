@@ -190,14 +190,22 @@ function lookup(raw) {
 }
 
 /* ═══════════ Sprachausgabe & Töne ═══════════ */
-let frVoice = null;
-function pickVoice() { try { const vs = speechSynthesis.getVoices(); frVoice = vs.find(v => /fr[-_]FR/i.test(v.lang)) || vs.find(v => /^fr/i.test(v.lang)) || null; } catch (e) {} }
-try { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; } catch (e) {}
+let frVoice = null, voiceWarned = false;
+const allVoices = () => { try { return speechSynthesis.getVoices(); } catch (e) { return []; } };
+const frVoices = () => allVoices().filter(v => /^fr([-_]|$)/i.test(v.lang) || /fran[cç]ais|french/i.test(v.name));
+function pickVoice() {
+  const vs = frVoices(), pref = S.settings.voice;
+  frVoice = vs.find(v => v.voiceURI === pref) || vs.find(v => /fr[-_]FR/i.test(v.lang) && /google|premium|enhanced|natural|online|siri/i.test(v.name)) || vs.find(v => /fr[-_]FR/i.test(v.lang)) || vs[0] || null;
+}
+try { pickVoice(); speechSynthesis.addEventListener("voiceschanged", () => { pickVoice(); if (location.hash === "#einstellungen" && !PL) vSettings(); }); } catch (e) {}
 function speak(t, rate = .92) {
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(String(t).replace(/…|\(.*?\)/g, "").replace(/ \/ /g, ", "));
-    u.lang = "fr-FR"; u.rate = rate; if (frVoice) u.voice = frVoice;
+    if (!frVoice) pickVoice();
+    if (frVoice) { u.voice = frVoice; u.lang = frVoice.lang.replace("_", "-"); } else u.lang = "fr-FR";
+    u.rate = rate;
+    if (!frVoice && allVoices().length && !voiceWarned) { voiceWarned = true; toast("Keine französische Stimme gefunden – siehe Einstellungen."); }
     speechSynthesis.speak(u);
   } catch (e) {}
 }
@@ -607,6 +615,7 @@ function renderStep() {
   const fb = $("#pl-feedback"); fb.className = "feedback"; fb.innerHTML = "";
   updateCheckBtn();
   $("#pl-check").hidden = !!PL.ctrl.selfButtons;
+  $("#pl-idk").hidden = !!PL.ctrl.selfButtons || ["readtext", "match"].includes(it.k);
   $("#pl-check").textContent = it.k === "readtext" ? "Zu den Fragen" : "Prüfen";
   setTimeout(() => PL?.ctrl.focus?.(), 380);
   body.scrollTop = 0;
@@ -618,19 +627,21 @@ function instrFor(it) {
   return { gap:"Fülle die Lücke.", mc:it.text ? "Beantworte die Frage zum Text." : "Wähle die richtige Antwort.", order:"Bilde den Satz.", tr:"Übersetze ins Französische.", tf:"Forme den Satz um.", conj:"Konjugiere das Verb.", conjq:"Setze die richtige Form ein.", vmc:"Wähle die Übersetzung.", vtype:"Schreib das Wort.", vlisten:"Hör genau hin.", match:"Finde die Paare.", card:"Karteikarte" }[it.k] || "";
 }
 function updateCheckBtn() { if (!PL) return; const b = $("#pl-check"); b.disabled = PL.phase === "q" && !PL.ctrl.ready(); }
-function doCheck() {
+function doCheck(idk = false) {
   const it = PL.items[PL.i];
   const r = PL.ctrl.check(); PL.phase = "f";
+  if (idk) r.ratio = 0;
+  $("#pl-idk").hidden = true;
   hideAccents();
   if (!r.skip) { PL.res.push(r.ratio); if (r.ratio < 1) PL.wrong.push(it); }
   if (r.skip) return nextStep();
   const fb = $("#pl-feedback");
   const good = r.ratio === 1, half = r.ratio > 0 && r.ratio < 1;
-  if (!r.silent) sfx(good ? "ok" : "bad");
+  if (!r.silent && !idk) sfx(good ? "ok" : "bad");
   if (it.k === "card" || (it.k === "match")) { nextStep(); return; }
   fb.className = `feedback show ${good ? "good" : half ? "half" : "bad"}`;
-  fb.innerHTML = `<div class="fb-in"><div class="fb-head">${good ? I("check") : half ? I("bulb") : I("close")}<b>${good ? rnd(PRAISE) : half ? "Fast richtig!" : "Leider falsch"}</b></div>
-   ${!good && r.sol ? `<div class="fb-sol"><span>Richtig:</span> ${r.sol}</div>` : good && r.sol && it.k !== "vmc" ? `<div class="fb-sol okk">${r.sol}</div>` : ""}
+  fb.innerHTML = `<div class="fb-in"><div class="fb-head">${good ? I("check") : half ? I("bulb") : I("close")}<b>${good ? rnd(PRAISE) : half ? "Fast richtig!" : idk ? "Kein Problem – so geht's:" : "Leider falsch"}</b></div>
+   ${!good && r.sol ? `<div class="fb-sol"><span>${idk ? "Lösung:" : "Richtig:"}</span> ${r.sol}</div>` : good && r.sol && it.k !== "vmc" ? `<div class="fb-sol okk">${r.sol}</div>` : ""}
    ${r.msg ? `<div class="fb-msg">${esc(r.msg)}</div>` : ""}
    ${r.de ? `<div class="fb-de">${esc(r.de)}</div>` : ""}
    ${r.ex ? `<div class="fb-ex">${I("bulb")} ${esc(r.ex)}</div>` : ""}
@@ -659,7 +670,7 @@ function finishLesson() {
   const msgs = ["Weiter üben – du schaffst das!","Ein Anfang! Schau dir die Regel nochmal an.","Ganz okay! Noch eine Runde?","Gut gemacht!","Sehr gut!","Parfait ! Alles richtig!"];
   const course = PL.course, l = PL.l, idx = course.lessons.indexOf(l), nextL = idx >= 0 ? course.lessons[idx + 1] : null;
   $("#pl-feedback").className = "feedback";
-  $("#pl-check").hidden = true;
+  $("#pl-check").hidden = true; $("#pl-idk").hidden = true;
   $("#pl-body").innerHTML = `<div class="result enter">
    <div class="res-stars">${Array.from({ length:5 }, (_, i) => `<svg viewBox="0 0 24 24" class="rs-star ${i < st ? "on" : ""}" style="--d:${i * 140}ms"><path d="${P.star}"/></svg>`).join("")}</div>
    <h2 class="hand">${["Oh là là …","Pas mal !","Bien !","Très bien !","Super !","Parfait !"][st]}</h2>
@@ -743,7 +754,7 @@ function openWrite(courseId, l) {
   const task = writeTask();
   const ov = $("#player"); ov.hidden = false; ov.style.setProperty("--cc", `var(--c-${course.color})`); document.body.classList.add("noscroll");
   $("#pl-title").textContent = l.t; $("#pl-bar").style.width = "0%"; $("#pl-count").textContent = "";
-  $("#pl-check").hidden = true; $("#pl-feedback").className = "feedback";
+  $("#pl-check").hidden = true; $("#pl-idk").hidden = true; $("#pl-feedback").className = "feedback";
   PL = { course, l, items:[], i:0, res:[], wrong:[], phase:"w" };
   const draft = S.drafts.write || "";
   $("#pl-body").innerHTML = `<div class="qcard enter writecard">${writeTaskHtml(task)}
@@ -952,13 +963,16 @@ function vSettings() {
    <div class="set"><b>Töne</b><div class="seg">${[[true, "An"], [false, "Aus"]].map(([k, t]) => `<button type="button" class="${st.sound === k ? "on" : ""}" data-snd="${k}">${t}</button>`).join("")}</div></div>
    <div class="set"><b>Tagesziel</b><div class="seg">${[30, 60, 100, 150].map(k => `<button type="button" class="${st.goal === k ? "on" : ""}" data-goal="${k}">${k} XP</button>`).join("")}</div></div>
    <div class="set"><label for="exd"><b>Datum der Klassenarbeit</b></label><input type="date" id="exd" value="${esc(st.exam)}"></div>
-   <div class="set"><b>Stimme testen</b><button type="button" class="btn ghost" id="voice">${I("speaker")} Bonjour, je m'appelle Léa !</button></div>
+   <div class="set voiceset"><label for="vsel"><b>Französische Stimme</b></label>${frVoices().length ? `<select id="vsel" class="vsel">${frVoices().map(v => `<option value="${esc(v.voiceURI)}" ${frVoice && frVoice.voiceURI === v.voiceURI ? "selected" : ""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}</select>` : `<span class="pill">keine gefunden</span>`}
+     <button type="button" class="btn ghost" id="voice">${I("speaker")} Bonjour, je m'appelle Léa !</button>
+     ${frVoices().length ? "" : `<div class="note voicehelp"><b>Dein Gerät hat keine französische Stimme.</b> Ohne sie liest die Stimme den Text auf Deutsch oder Englisch vor. So installierst du sie (danach die Seite neu laden):<ul class="list"><li><b>iPhone / iPad:</b> Einstellungen → Bedienungshilfen → Gesprochene Inhalte → Stimmen → Französisch → eine Stimme laden (z. B. Thomas oder Amélie).</li><li><b>Android:</b> Einstellungen → System (bzw. Allgemeine Verwaltung) → Sprache → Sprachausgabe → Google-Sprachausgabe → Sprachdaten installieren → Französisch (Frankreich).</li><li><b>Windows:</b> Einstellungen → Zeit und Sprache → Sprache → Sprache hinzufügen → Französisch (Frankreich) mit „Text-to-Speech“, dann Browser neu starten.</li><li><b>Mac:</b> Systemeinstellungen → Bedienungshilfen → Gesprochene Inhalte → Systemstimme → Stimmen verwalten → Französisch.</li></ul></div>`}</div>
    <div class="set danger"><b>Fortschritt zurücksetzen</b><button type="button" class="btn bad-b" id="reset">Alles löschen</button><div id="reset-confirm" hidden><p>Wirklich alle Sterne, XP und die Lernkartei löschen?</p><button type="button" class="btn bad-b" id="reset-yes">Ja, löschen</button> <button type="button" class="btn ghost" id="reset-no">Abbrechen</button></div></div></div>`;
   $$("[data-th]").forEach(b => b.onclick = () => { st.theme = b.dataset.th; save(); applyTheme(); vSettings(); });
   $$("[data-snd]").forEach(b => b.onclick = () => { st.sound = b.dataset.snd === "true"; save(); vSettings(); });
   $$("[data-goal]").forEach(b => b.onclick = () => { st.goal = +b.dataset.goal; save(); vSettings(); });
   $("#exd").onchange = e => { st.exam = e.target.value; save(); toast("Datum gespeichert"); };
   $("#voice").onclick = () => speak("Bonjour, je m'appelle Léa !");
+  const vs = $("#vsel"); if (vs) vs.onchange = () => { st.voice = vs.value; save(); pickVoice(); speak("Bonjour, je m'appelle Léa !"); };
   $("#reset").onclick = () => $("#reset-confirm").hidden = false;
   $("#reset-no").onclick = () => $("#reset-confirm").hidden = true;
   $("#reset-yes").onclick = () => { const keep = S.settings; S = defState(); S.settings = keep; save(); toast("Fortschritt gelöscht"); location.hash = "#start"; };
@@ -1174,6 +1188,7 @@ function init() {
     t.value = t.value.slice(0, s) + b.dataset.c + t.value.slice(en); t.setSelectionRange(s + 1, s + 1); t.dispatchEvent(new Event("input", { bubbles:true })); t.focus();
   });
   $("#pl-close").onclick = closeLesson;
+  $("#pl-idk").onclick = () => { if (PL && PL.phase === "q") doCheck(true); };
   $("#pl-check").onclick = () => { if (!PL) return; if (PL.phase === "q") { if (PL.items[PL.i].k === "readtext") { PL.ctrl.check(); nextStep(); } else doCheck(); } };
   $("#sheet").addEventListener("click", e => { if (e.target.id === "sheet" || e.target.closest(".sheet-x")) closeSheet(); });
   document.addEventListener("click", e => { const b = e.target.closest(".spk"); if (b) { e.preventDefault(); e.stopPropagation(); speak(b.dataset.say); b.classList.remove("ping"); void b.offsetWidth; b.classList.add("ping"); } }, true);
