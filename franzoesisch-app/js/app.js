@@ -73,7 +73,8 @@ const P = {
  refresh:"M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7",
  bulb:"M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z",
  eye:"M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
- edit:"M4 20h4L19 9l-4-4L4 16z"
+ edit:"M4 20h4L19 9l-4-4L4 16z",
+ cloud:"M7 18a4.5 4.5 0 0 1-.7-8.95A6 6 0 0 1 17.8 8.5 4.75 4.75 0 0 1 17.5 18z"
 };
 const I = (n, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n] || P.spark}"/></svg>`;
 const starRow = (n, max = 5, cls = "") => `<span class="stars ${cls}">${Array.from({ length: max }, (_, i) => `<svg viewBox="0 0 24 24" class="${i < n ? "on" : ""}"><path d="${P.star}"/></svg>`).join("")}</span>`;
@@ -82,7 +83,84 @@ const starRow = (n, max = 5, cls = "") => `<span class="stars ${cls}">${Array.fr
 const KEY = "carnet-francais-v1";
 const defState = () => ({ xp:0, stars:{}, self:{}, leitner:{}, streak:{ n:0, last:null }, day:{ d:null, xp:0 }, custom:"", settings:{ theme:"system", sound:true, goal:60, exam:"" }, exams:[], drafts:{}, seenIntro:false });
 let S = (() => { try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) { const b = defState(); return { ...b, ...d, settings:{ ...b.settings, ...(d.settings || {}) } }; } } catch (e) {} return defState(); })();
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+/* Speichern: sofort im Browser, dazu (wenn verfügbar) im Claude-Konto, damit es auf allen Geräten gleich ist. */
+let syncState = "local", syncTimer = null, syncBusy = false, syncDirty = false, cloudRef = null;
+const SYNC_TXT = { local:"Nur auf diesem Gerät gespeichert", loading:"Verbinde mit deinem Konto …", cloud:"In deinem Konto gespeichert – auf allen Geräten gleich", slow:"Konto gerade nicht erreichbar – vorerst nur auf diesem Gerät", error:"Speichern im Konto hat nicht geklappt – vorerst nur auf diesem Gerät" };
+function save() {
+  S.updatedAt = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  if (cloudRef) { syncDirty = true; clearTimeout(syncTimer); syncTimer = setTimeout(pushCloud, 1200); }
+}
+function packState(x) { const o = JSON.parse(JSON.stringify({ ...x, exams:(x.exams || []).slice(-50) })); delete o.updatedAt; return o; }
+async function pushCloud() {
+  if (!cloudRef) return;
+  if (syncBusy) { syncDirty = true; return; }
+  if (!syncDirty) return;
+  syncBusy = true; syncDirty = false;
+  try { await cloudRef.set({ ...packState(S), updatedAt:S.updatedAt || Date.now() }); setSync("cloud"); }
+  catch (e) {
+    if (e && (e.code === "unavailable" || e.code === "resource_exhausted")) { syncDirty = true; setTimeout(pushCloud, 3000 + Math.random() * 3000); }
+    else setSync("error");
+  }
+  syncBusy = false;
+  if (syncDirty) { clearTimeout(syncTimer); syncTimer = setTimeout(pushCloud, 800); }
+}
+function normState(d) { const b = defState(); return { ...b, ...d, settings:{ ...b.settings, ...(d.settings || {}) } }; }
+function mergeState(r) {
+  const L = S;
+  if ((r.resetAt || 0) > (L.updatedAt || 0) && (r.resetAt || 0) > (L.resetAt || 0)) return normState(r);
+  if ((L.resetAt || 0) > (r.updatedAt || 0) && (L.resetAt || 0) > (r.resetAt || 0)) return normState(L);
+  const newer = (r.updatedAt || 0) > (L.updatedAt || 0) ? r : L;
+  const out = normState(newer);
+  out.updatedAt = Math.max(r.updatedAt || 0, L.updatedAt || 0);
+  out.xp = Math.max(L.xp || 0, r.xp || 0);
+  out.stars = { ...(r.stars || {}) };
+  for (const [k, v] of Object.entries(L.stars || {})) out.stars[k] = Math.max(v, out.stars[k] || 0);
+  out.leitner = { ...(r.leitner || {}) };
+  for (const [k, v] of Object.entries(L.leitner || {})) { const o = out.leitner[k]; if (!o || (v.t || 0) > (o.t || 0)) out.leitner[k] = v; }
+  const ex = new Map(); [...(r.exams || []), ...(L.exams || [])].forEach(e => ex.set(e.date, e));
+  out.exams = [...ex.values()].sort((a, b) => a.date - b.date).slice(-50);
+  const rs = r.streak || { n:0, last:null }, ls = L.streak || { n:0, last:null };
+  out.streak = rs.last === ls.last ? { last:ls.last, n:Math.max(rs.n || 0, ls.n || 0) } : ((rs.last || "") > (ls.last || "") ? rs : ls);
+  const rd = r.day || { d:null, xp:0 }, ld = L.day || { d:null, xp:0 };
+  out.day = rd.d === ld.d ? { d:ld.d, xp:Math.max(rd.xp || 0, ld.xp || 0) } : ((rd.d || "") > (ld.d || "") ? rd : ld);
+  return out;
+}
+function setSync(st) { syncState = st; updateTopStats(); const el = $("#syncinfo"); if (el) el.textContent = SYNC_TXT[st]; }
+async function startSync() {
+  const cl = window.claude;
+  if (!cl || typeof cl.use !== "function") return setSync("local");
+  setSync("loading");
+  let db = null, user = null, uid = null;
+  try { [db, user] = await Promise.all([cl.use("db"), cl.use("user")]); uid = user ? await user.id() : null; } catch (e) {}
+  if (!db || !uid) return setSync("local");
+  let ref;
+  try { ref = db.doc("data/users/" + uid + "/progress"); } catch (e) { return setSync("local"); }
+  let confirmed = false;
+  const to = setTimeout(() => { if (!confirmed) setSync("slow"); }, 10000);
+  ref.onSnapshot(snap => {
+    if (snap.metadata.hasPendingWrites) return;
+    const fresh = !snap.metadata.fromCache;
+    if (fresh) { confirmed = true; clearTimeout(to); }
+    cloudRef = ref;
+    if (!snap.exists) { if (fresh) { syncDirty = true; pushCloud(); setSync("cloud"); } return; }
+    const remote = snap.data();
+    const merged = mergeState(remote);
+    const mj = JSON.stringify(packState(merged));
+    const changedLocal = mj !== JSON.stringify(packState(S));
+    const needPush = mj !== JSON.stringify(packState(remote));
+    const customChanged = merged.custom !== S.custom;
+    S = merged;
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+    if (changedLocal) {
+      applyTheme();
+      if (customChanged) { loadCustom(); VCOURSES = vocabCourses(); buildDict(); }
+      if (!PL && !(EX && !EX.done)) route(); else updateTopStats();
+    }
+    if (needPush && fresh) { syncDirty = true; pushCloud(); }
+    if (fresh) setSync("cloud");
+  }, () => { clearTimeout(to); cloudRef = null; setSync("error"); });
+}
 
 function addXP(n) {
   const t = today();
@@ -147,7 +225,7 @@ const BOXDAYS = [0, 0, 1, 3, 7, 14];
 function leit(id, ok) {
   const e = S.leitner[id] || { b:0, due:0 };
   e.b = ok ? Math.min(5, e.b + 1) : 1;
-  e.due = Date.now() + BOXDAYS[e.b] * 864e5 - 36e5;
+  e.due = Date.now() + BOXDAYS[e.b] * 864e5 - 36e5; e.t = Date.now();
   S.leitner[id] = e;
 }
 const dueWords = () => Object.entries(S.leitner).filter(([id, e]) => WORDS[id] && e.due <= Date.now()).map(([id]) => WORDS[id]);
@@ -291,6 +369,7 @@ function vocabLessons(set) {
 }
 const c8 = COURSES.find(c => c.id === "c8"); c8.lessons = c8.sets.flatMap(id => vocabLessons(setById(id)));
 COURSES.forEach(c => { if (!c.kind && c.lessons) c.lessons.push({ id:c.id + "-test", t:"Thementest", k:"mix", boss:1 }); });
+COURSES.push({ id:"mini", group:"mini", icon:"exam", color:"red", title:"Mini-Klassenarbeit", short:"Mini-Test", fr:"Alle 10 Themen kurz", rules:[], lessons:[{ id:"minitest", t:"Mini-Klassenarbeit", k:"minitest" }] });
 function vocabCourses() {
   return allSets().map((s, i) => ({ id:"v-" + s.id, kind:"vocabset", set:s.id, group:"vocab", icon:s.icon, color:s.exam ? "amber" : COLORS[(i + 2) % COLORS.length], title:s.title, short:s.title, fr:s.de, band:s.band, lessons:vocabLessons(s), rules:[] }));
 }
@@ -341,6 +420,30 @@ function dialogItems() {
   ];
   return steps.map(s => { const c = s.o.find(x => x.startsWith("*")).slice(1); return { k:"mc", chat:s.v, q:"Was antwortest du?", o:s.o.map(x => x.replace(/^\*/, "")), c, ex:s.ex }; });
 }
+function miniItems() {
+  const P = (cid, lid) => { const c = getCourse(cid), l = c.lessons.find(x => x.id === lid); return lessonPool(c, l).map(it => ({ ...it, d:l.d })); };
+  const one = (arr, topic) => sample(arr, 1).map(x => ({ ...x, topic }));
+  const noCh = x => ({ ...x, choices:null });
+  const t = rnd(TEXTS);
+  return [
+    ...one(conjQuick("être avoir faire aller prendre voir pouvoir vouloir savoir devoir venir", "pres", 1), "c1"),
+    ...one(P("c1", "c1d"), "c1"),
+    ...one([...P("c2", "c2c"), ...P("c2", "c2d")], "c2"),
+    ...one(P("c2", "c2e"), "c2"),
+    ...one(P("c3", "c3a"), "c3").map(noCh),
+    ...one([...P("c3", "c3b"), ...P("c3", "c3c")], "c3").map(noCh),
+    ...one(P("c4", "c4a"), "c4"),
+    ...one(P("c5", "c5a"), "c5").map(noCh),
+    ...one([...P("c6", "c6a").map(noCh), ...P("c6", "c6b")], "c6"),
+    ...one([...P("c7", "c7a"), ...P("c7", "c7b"), ...P("c7", "c7c")], "c7"),
+    { k:"vtype", w:rnd(setById("b2u4").list).id, topic:"c8" },
+    { k:"vmc", w:rnd(setById("b2u6").list).id, dir:"df", topic:"c8" },
+    ...one(readingItems(t.id).filter(x => !x.noScore), "c9"),
+    ...one(dialogItems().slice(0, 7), "c10"),
+    ...one(P("c10", "c10e"), "c10")
+  ];
+}
+const miniCard = (i = 0) => `<button type="button" class="minicard enter" style="--i:${i}" data-mini="1"><span class="mc-ic">${I("exam")}</span><span class="mc-tx"><small>Alles von der Checkliste</small><b>Mini-Klassenarbeit</b><span>15 Aufgaben · alle 10 Themen · ca. 10 Minuten</span></span>${S.stars.minitest ? starRow(S.stars.minitest, 5, "sm") : ""}${I("play", "playic")}</button>`;
 function readingItems(tid) {
   const t = TEXTS.find(x => x.id === tid);
   const qs = t.q.trim().split("\n").map(l => {
@@ -355,9 +458,10 @@ function buildItems(course, l) {
   if (l.k === "conjq") return conjQuick(l.verbs, l.tense, l.n || 12);
   if (["vlearn","vwrite","vlisten","vmatch","vtest"].includes(l.k)) return vocabItems(l);
   if (l.k === "dialog") return dialogItems();
+  if (l.k === "minitest") return miniItems();
   if (l.k === "read") return readingItems(l.text);
   if (l.k === "mix") {
-    const pool = course.lessons.filter(x => x.items).flatMap(x => lessonPool(course, x));
+    const pool = course.lessons.filter(x => x.items).flatMap(x => lessonPool(course, x).map(it => ({ ...it, d:x.d })));
     const conj = course.lessons.find(x => x.k === "conjq" || x.k === "conj");
     let items = sample(pool, conj ? 9 : 12);
     if (conj) items = shuffle([...items, ...conjQuick(conj.verbs, conj.tense, 3)]);
@@ -595,7 +699,7 @@ function openLesson(courseId, lessonId, opt = {}) {
   if (l.k === "write") return openWrite(courseId, l);
   const items = opt.items || buildItems(course, l);
   if (!items.length) { toast("Für diese Aufgabe gibt es noch keine Inhalte."); return; }
-  PL = { course, l, items, i:0, res:[], wrong:[], noStars:!!opt.noStars, phase:"q" };
+  PL = { course, l, items, i:0, res:[], log:[], wrong:[], noStars:!!opt.noStars, phase:"q" };
   const ov = $("#player"); ov.hidden = false; ov.style.setProperty("--cc", `var(--c-${course.color || "blue"})`);
   document.body.classList.add("noscroll");
   $("#pl-title").textContent = l.t;
@@ -608,7 +712,8 @@ function renderStep() {
   $("#pl-bar").style.width = `${(PL.res.length / Math.max(1, scored)) * 100}%`;
   $("#pl-count").textContent = `${Math.min(PL.res.length + 1, scored)} / ${scored}`;
   const body = $("#pl-body");
-  body.innerHTML = `<div class="qcard enter"><p class="instr">${esc(instrFor(it))}</p><div class="qbody"></div></div>`;
+  const tc = it.topic && COURSES.find(c => c.id === it.topic);
+  body.innerHTML = `<div class="qcard enter">${tc ? `<span class="tpill" style="--cc:var(--c-${tc.color})">Thema ${tc.n} · ${esc(tc.short)}</span>` : ""}<p class="instr">${esc(instrFor(it))}</p><div class="qbody"></div></div>`;
   const host = $(".qbody", body);
   const ctx = { mode:"lesson", changed:() => updateCheckBtn(), enter:() => { if (PL.phase === "q" && PL.ctrl.ready()) doCheck(); else if (PL.phase === "f") nextStep(); } };
   PL.ctrl = R[it.k](it, host, ctx); PL.phase = "q";
@@ -621,6 +726,7 @@ function renderStep() {
   body.scrollTop = 0;
 }
 function instrFor(it) {
+  if (it.d) return it.d;
   if (it.k === "readtext") return "Lies den Text.";
   if (it.chat) return "Dialog am Markt";
   if (PL.l.d && !["vlearn","vwrite","vlisten","vmatch","vtest","mix","read"].includes(PL.l.k)) return PL.l.d;
@@ -633,7 +739,7 @@ function doCheck(idk = false) {
   if (idk) r.ratio = 0;
   $("#pl-idk").hidden = true;
   hideAccents();
-  if (!r.skip) { PL.res.push(r.ratio); if (r.ratio < 1) PL.wrong.push(it); }
+  if (!r.skip) { PL.res.push(r.ratio); PL.log.push({ topic:it.topic, ratio:r.ratio }); if (r.ratio < 1) PL.wrong.push(it); }
   if (r.skip) return nextStep();
   const fb = $("#pl-feedback");
   const good = r.ratio === 1, half = r.ratio > 0 && r.ratio < 1;
@@ -675,6 +781,7 @@ function finishLesson() {
    <div class="res-stars">${Array.from({ length:5 }, (_, i) => `<svg viewBox="0 0 24 24" class="rs-star ${i < st ? "on" : ""}" style="--d:${i * 140}ms"><path d="${P.star}"/></svg>`).join("")}</div>
    <h2 class="hand">${["Oh là là …","Pas mal !","Bien !","Très bien !","Super !","Parfait !"][st]}</h2>
    <p class="res-msg">${msgs[st]}</p>
+   ${l.k === "minitest" ? miniBreakdown(pct) : ""}
    <div class="res-stats"><div><b>${Math.round(pct * 100)}%</b><span>richtig</span></div><div><b>${Math.round(sum * 10) / 10}/${n}</b><span>Punkte</span></div><div><b>+${xp}</b><span>XP</span></div></div>
    ${!PL.noStars && st > prev && prev > 0 ? `<p class="res-new">${I("trophy")} Neuer Rekord! Vorher ${prev} Sterne.</p>` : ""}
    ${!PL.noStars && st <= prev && prev > 0 ? `<p class="res-old">Dein Rekord bleibt ${prev} Sterne.</p>` : ""}
@@ -688,6 +795,14 @@ function finishLesson() {
   const rw = $("#res-wrong"); if (rw) rw.onclick = () => { const w = PL.wrong.map(x => ({ ...x })); openLesson(course.id, l.id, { lesson:l, items:w, noStars:true }); };
   const rn = $("#res-next"); if (rn) rn.onclick = () => openLesson(course.id, nextL.id);
   $("#res-close").onclick = closeLesson;
+}
+function miniBreakdown(pct) {
+  const grade = pct >= .92 ? 1 : pct >= .81 ? 2 : pct >= .67 ? 3 : pct >= .5 ? 4 : pct >= .3 ? 5 : 6;
+  const tops = COURSES.filter(c => c.group === "check").map(c => { const rs = PL.log.filter(x => x.topic === c.id); return { c, v:rs.length ? rs.reduce((a, b) => a + b.ratio, 0) / rs.length : null }; });
+  const weak = tops.filter(x => x.v !== null && x.v < .99);
+  return `<div class="minires"><div class="bignote small n${grade}">${grade}</div><p><b>Note ${grade}</b> · ${["", "Sehr gut", "Gut", "Befriedigend", "Ausreichend", "Mangelhaft", "Ungenügend"][grade]}</p></div>
+   <div class="minibd">${tops.map(({ c, v }) => `<a href="#kurs-${c.id}" class="mb ${v === null ? "" : v >= .99 ? "ok" : v > 0 ? "half" : "bad"}" style="--cc:var(--c-${c.color})"><i class="num">${c.n}</i><span>${esc(c.short)}</span>${I(v >= .99 ? "check" : v > 0 ? "bulb" : "close")}</a>`).join("")}</div>
+   <p class="muted small">${weak.length ? "Tippe auf ein Thema, um es gezielt zu üben." : "Alle Themen sitzen. Bereit für die große Klassenarbeit!"}</p>`;
 }
 function showSheet(html, cls = "") {
   const sh = $("#sheet"); $("#sheet-body").innerHTML = html; sh.className = "sheet " + cls; sh.hidden = false;
@@ -812,6 +927,7 @@ function vStart() {
     <div class="stat lvl"><span class="lvl-n">${lv}</span><div><b>Level ${lv}</b><span class="lvlbar"><i style="width:${((S.xp - a) / (b - a)) * 100}%"></i></span><small>${S.xp} XP</small></div></div>
   </div>
   ${nx ? `<button type="button" class="continue enter" style="--i:2;--cc:var(--c-${nx.c.color})" id="go-next"><span class="tile-ic">${I(nx.c.icon)}</span><span><small>Weiter lernen</small><b>${esc(nx.l.t)}</b><span class="muted small">${esc(nx.c.title)}</span></span>${I("play", "playic")}</button>` : ""}
+  ${miniCard(2)}
   <div class="quick enter" style="--i:3">
     <a href="#klassenarbeit" class="qa" style="--cc:var(--c-red)">${I("exam")}<b>Klassenarbeit</b><small>gemischt & bewertet</small></a>
     <a href="#lernkartei" class="qa" style="--cc:var(--c-amber)">${I("box")}<b>Lernkartei</b><small>${due ? `${due} Wörter fällig` : "alles erledigt"}</small></a>
@@ -827,7 +943,7 @@ function vStart() {
 function autoThumb(c) { const p = courseProgress(c).pct; return p >= .75 ? 2 : p >= .35 ? 1 : p > 0 ? 0 : -1; }
 function vCheck() {
   const rows = COURSES.filter(c => c.group === "check");
-  main().innerHTML = header("Checkliste", "Schätze dich selbst ein – die App zeigt dir zusätzlich, wie gut deine Übungen gelaufen sind.") + `
+  main().innerHTML = header("Checkliste", "Schätze dich selbst ein – die App zeigt dir zusätzlich, wie gut deine Übungen gelaufen sind.") + miniCard() + `
   <div class="cl enter">
    <div class="cl-head"><span>Themenbereich</span><span class="cl-th" title="kann ich noch nicht">${I("thumbUp", "down")}</span><span class="cl-th" title="geht so">${I("thumbUp", "side")}</span><span class="cl-th" title="kann ich">${I("thumbUp")}</span></div>
    ${rows.map(c => { const s = S.self[c.id], a = autoThumb(c), p = courseProgress(c); return `<div class="cl-row" style="--cc:var(--c-${c.color})">
@@ -959,6 +1075,7 @@ function vMore() {
 function vSettings() {
   const st = S.settings;
   main().innerHTML = header("Einstellungen", "", "mehr") + `<div class="settings enter">
+   <div class="set"><b>Speicherort</b><span class="syncline">${I("cloud")} <span id="syncinfo">${esc(SYNC_TXT[syncState])}</span></span></div>
    <div class="set"><b>Design</b><div class="seg">${[["system", "System"], ["light", "Hell"], ["dark", "Dunkel"]].map(([k, t]) => `<button type="button" class="${st.theme === k ? "on" : ""}" data-th="${k}">${t}</button>`).join("")}</div></div>
    <div class="set"><b>Töne</b><div class="seg">${[[true, "An"], [false, "Aus"]].map(([k, t]) => `<button type="button" class="${st.sound === k ? "on" : ""}" data-snd="${k}">${t}</button>`).join("")}</div></div>
    <div class="set"><b>Tagesziel</b><div class="seg">${[30, 60, 100, 150].map(k => `<button type="button" class="${st.goal === k ? "on" : ""}" data-goal="${k}">${k} XP</button>`).join("")}</div></div>
@@ -975,7 +1092,7 @@ function vSettings() {
   const vs = $("#vsel"); if (vs) vs.onchange = () => { st.voice = vs.value; save(); pickVoice(); speak("Bonjour, je m'appelle Léa !"); };
   $("#reset").onclick = () => $("#reset-confirm").hidden = false;
   $("#reset-no").onclick = () => $("#reset-confirm").hidden = true;
-  $("#reset-yes").onclick = () => { const keep = S.settings; S = defState(); S.settings = keep; save(); toast("Fortschritt gelöscht"); location.hash = "#start"; };
+  $("#reset-yes").onclick = () => { const keep = S.settings; S = defState(); S.settings = keep; S.resetAt = Date.now(); save(); toast("Fortschritt gelöscht"); location.hash = "#start"; };
 }
 function applyTheme() { const t = S.settings.theme; if (t === "system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = t; }
 
@@ -1008,7 +1125,7 @@ let exOpt = { shuffleSecs:false, shuffleItems:true, timer:false, parts:["c1", "c
 function vExam() {
   if (EX && !EX.done) return renderExam();
   const hist = S.exams.slice(-6).reverse();
-  main().innerHTML = header("Klassenarbeit", "Eine komplette Probe-Arbeit zu allen 10 Themen der Checkliste – jedes Mal neu gemischt.") + `
+  main().innerHTML = header("Klassenarbeit", "Eine komplette Probe-Arbeit zu allen 10 Themen der Checkliste – jedes Mal neu gemischt. Wenig Zeit? Mach die Mini-Klassenarbeit.") + miniCard() + `
   <div class="exstart enter">
    <div class="paper-prev"><div class="pp-h"><b>Contrôle de français</b><span>Unités 4 & 6</span></div>${COURSES.filter(c => c.group === "check").map(c => `<label class="pp-r"><input type="checkbox" data-p="${c.id}" ${exOpt.parts.includes(c.id) ? "checked" : ""}><i class="num" style="--cc:var(--c-${c.color})">${c.n}</i><span>${esc(c.title)}</span></label>`).join("")}</div>
    <div class="exopts">
@@ -1105,7 +1222,7 @@ function route() {
 let lastHash = null;
 addEventListener("hashchange", () => { if (PL) closeLessonSilently(); route(); if (lastHash !== location.hash) scrollTo(0, 0); lastHash = location.hash; });
 function closeLessonSilently() { $("#player").hidden = true; document.body.classList.remove("noscroll"); PL = null; }
-function updateTopStats() { const el = $("#topstats"); if (el) el.innerHTML = `<span>${I("flame", "fl")}${S.streak.last === today() ? S.streak.n : S.streak.n && S.streak.last === new Date(Date.now() - 864e5).toISOString().slice(0, 10) ? S.streak.n : 0}</span><span>${I("star", "gold")}${Object.values(S.stars).reduce((a, b) => a + b, 0)}</span><span class="tlv">Lv ${level()}</span>`; }
+function updateTopStats() { const el = $("#topstats"); if (el) el.innerHTML = `<span>${I("flame", "fl")}${S.streak.last === today() ? S.streak.n : S.streak.n && S.streak.last === new Date(Date.now() - 864e5).toISOString().slice(0, 10) ? S.streak.n : 0}</span><span>${I("star", "gold")}${Object.values(S.stars).reduce((a, b) => a + b, 0)}</span><span class="tlv">Lv ${level()}</span><span class="sync s-${syncState}" title="${esc(SYNC_TXT[syncState])}" aria-label="${esc(SYNC_TXT[syncState])}">${I("cloud")}</span>`; }
 
 /* ═══════════ Doppeltipp-Übersetzung ═══════════ */
 function wordAt(x, y) {
@@ -1191,6 +1308,7 @@ function init() {
   $("#pl-idk").onclick = () => { if (PL && PL.phase === "q") doCheck(true); };
   $("#pl-check").onclick = () => { if (!PL) return; if (PL.phase === "q") { if (PL.items[PL.i].k === "readtext") { PL.ctrl.check(); nextStep(); } else doCheck(); } };
   $("#sheet").addEventListener("click", e => { if (e.target.id === "sheet" || e.target.closest(".sheet-x")) closeSheet(); });
+  document.addEventListener("click", e => { if (e.target.closest("[data-mini]")) openLesson("mini", "minitest"); });
   document.addEventListener("click", e => { const b = e.target.closest(".spk"); if (b) { e.preventDefault(); e.stopPropagation(); speak(b.dataset.say); b.classList.remove("ping"); void b.offsetWidth; b.classList.add("ping"); } }, true);
   document.addEventListener("keydown", e => {
     if (e.key === "Escape") { if (!$("#pop").hidden) return closePop(); if (!$("#sheet").hidden) return closeSheet(); }
@@ -1199,6 +1317,7 @@ function init() {
     if (PL.phase === "q" && /^[1-4]$/.test(e.key) && PL.ctrl?.keys) PL.ctrl.keys(+e.key - 1);
   });
   route();
+  startSync();
 }
 init();
 })();

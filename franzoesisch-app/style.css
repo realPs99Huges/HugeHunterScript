@@ -570,3 +570,30 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .sb span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .sb b { text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 420px) { .opts.grid2 { grid-template-columns: 1fr; } .cj { grid-template-columns: 80px minmax(0, 1fr); } .qcard { padding: 18px 16px 20px 24px; } .sentence { font-size: 1.15rem; } }
 .tin:disabled::placeholder { color: transparent; }
+
+/* Konto-Speicher */
+.sync { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; }
+.sync .ic { width: 18px; height: 18px; }
+.sync.s-cloud { color: var(--good); } .sync.s-cloud path { fill: color-mix(in srgb, var(--good) 22%, transparent); }
+.sync.s-loading { color: var(--muted); animation: ping 1.2s infinite; }
+.sync.s-local, .sync.s-slow { color: var(--muted); } .sync.s-error { color: var(--bad); }
+.syncline { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 700; font-size: .92rem; }
+/* Mini-Klassenarbeit */
+.minicard { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 16px 18px; border-radius: 22px; background: var(--surface); color: var(--ink); border: 3px solid var(--c-red); box-shadow: 0 5px 0 color-mix(in srgb, var(--c-red) 55%, var(--line)); transition: transform .12s, box-shadow .12s; --cc: var(--c-red); }
+.minicard:active { transform: translateY(4px); box-shadow: 0 1px 0 color-mix(in srgb, var(--c-red) 55%, var(--line)); }
+.mc-ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--c-red); color: #fff; flex: none; transform: rotate(-5deg); }
+.mc-ic .ic { width: 28px; height: 28px; }
+.mc-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mc-tx small { color: var(--c-red); font-weight: 800; text-transform: uppercase; letter-spacing: .07em; font-size: .7rem; }
+.mc-tx b { font-family: var(--f-display); font-size: 1.25rem; font-weight: 600; } .mc-tx span { color: var(--muted); font-size: .86rem; }
+.minicard .playic { background: var(--c-red); color: #fff; }
+@media (max-width: 420px) { .minicard .stars { display: none; } }
+.tpill { align-self: flex-start; padding: 3px 10px; border-radius: 99px; background: color-mix(in srgb, var(--cc) 14%, var(--surface)); color: var(--cc); font-weight: 800; font-size: .75rem; }
+.minires { display: flex; align-items: center; gap: 14px; }
+.bignote.small { width: 60px; height: 68px; font-size: 2.3rem; border-radius: 16px; }
+.minibd { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; width: 100%; }
+.mb { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--surface); box-shadow: var(--shadow); color: var(--ink); font-weight: 700; font-size: .88rem; text-align: left; }
+.mb span { flex: 1; min-width: 0; } .mb .ic { width: 18px; height: 18px; }
+.mb .num { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: color-mix(in srgb, var(--cc) 15%, var(--surface)); color: var(--cc); font-size: .75rem; flex: none; }
+.mb.ok .ic { color: var(--good); } .mb.half .ic { color: var(--half); } .mb.bad .ic { color: var(--bad); }
+.mb.bad { background: var(--bad-2); } .mb.half { background: var(--half-2); }
