@@ -336,7 +336,7 @@ function fillVerbGrids(root) { $$(".verbgrid", root).forEach(g => { g.innerHTML 
 
 function parseItems(kind, text, extra = {}) {
   return text.trim().split("\n").map(l => l.trim()).filter(Boolean).map(l => {
-    const p = l.split(" | ").map(s => s.trim());
+    const p = l.split(/\s*\|\s*/).map(s => s.trim());
     if (kind === "gap") {
       let s = p[0], sit = null; const m = s.match(/^\{(.+?)\}\s*/); if (m) { sit = m[1]; s = s.slice(m[0].length); }
       return { k:"gap", s, sit, a:(p[1] || "").split(" ; ").map(x => x.split(" / ").map(t => t.trim())), de:p[2], ex:p[3], ...extra };
@@ -347,7 +347,7 @@ function parseItems(kind, text, extra = {}) {
     }
     if (kind === "order") return { k:"order", s:p[0], de:p[1], extra:(p[2] || "").split(" ").filter(x => x.startsWith("+")).map(x => x.slice(1)), ...extra };
     if (kind === "tr") { const [de, fr] = l.split(" => "); return { k:"tr", q:de.trim(), a:fr.split(" // ").map(s => s.trim()), ...extra }; }
-    if (kind === "tf") { const [q, rest] = l.split(" => "); const r = rest.split(" | "); return { k:"tf", q:q.trim(), a:r[0].split(" // ").map(s => s.trim()), de:r[1], ...extra }; }
+    if (kind === "tf") { const [q, rest] = l.split(" => "); const r = rest.split(/\s*\|\s*/); return { k:"tf", q:q.trim(), a:r[0].split(" // ").map(s => s.trim()), de:r[1], ...extra }; }
   });
 }
 
@@ -431,7 +431,7 @@ function miniItems() {
     ...one([...P("c2", "c2c"), ...P("c2", "c2d")], "c2"),
     ...one(P("c2", "c2e"), "c2"),
     ...one(P("c3", "c3a"), "c3").map(noCh),
-    ...one([...P("c3", "c3b"), ...P("c3", "c3c")], "c3").map(noCh),
+    ...one([...P("c3", "c3b"), ...P("c3", "c3c"), ...P("c3", "c3g"), ...P("c3", "c3h")], "c3").map(noCh),
     ...one(P("c4", "c4a"), "c4"),
     ...one(P("c5", "c5a"), "c5").map(noCh),
     ...one([...P("c6", "c6a").map(noCh), ...P("c6", "c6b")], "c6"),
@@ -1106,7 +1106,7 @@ function genExam(opt) {
   const secs = [
     { t:"Verben im Präsens", topic:"c1", info:"Setze die richtige Verbform ein.", items:[...conjQuick("être avoir faire aller prendre voir pouvoir vouloir savoir", "pres", 3), ...sample(pool("c1", "c1d"), 3)] },
     { t:"boire, mettre, connaître, choisir, finir", topic:"c2", info:"Konjugiere und setze ein.", items:[{ k:"conj", v:tbVerb, tense:"pres", pts:3 }, ...sample([...pool("c2", "c2c"), ...pool("c2", "c2d")], 3), ...sample(pool("c2", "c2e"), 2)] },
-    { t:"Mengenangaben & Teilungsartikel", topic:"c3", info:"du, de la, de l', des oder de / d'?", items:[...sample(pool("c3", "c3a"), 2), ...sample(pool("c3", "c3b"), 2), ...sample(pool("c3", "c3c"), 1), ...sample(pool("c3", "c3d"), 2)].map(x => ({ ...x, choices:null })) },
+    { t:"Mengenangaben & Teilungsartikel", topic:"c3", info:"du, de la, de l', des oder de / d'?", items:[...sample(pool("c3", "c3a"), 2), ...sample(pool("c3", "c3b"), 2), ...sample(pool("c3", "c3c"), 1), ...sample(pool("c3", "c3d"), 1), ...sample([...pool("c3", "c3g"), ...pool("c3", "c3h")], 2)].map(x => ({ ...x, choices:null })) },
     { t:"il faut", topic:"c4", info:"Ergänze oder wähle aus.", items:[...sample(pool("c4", "c4a"), 2), ...sample(pool("c4", "c4b"), 1), ...sample(pool("c4", "c4e"), 1)] },
     { t:"Objektpronomen me, te, nous, vous", topic:"c5", info:"Setze ein oder antworte mit Pronomen.", items:[...sample(pool("c5", "c5a"), 3).map(x => ({ ...x, choices:null })), ...sample(pool("c5", "c5c"), 1)] },
     { t:"Indirekte Objektpronomen lui, leur", topic:"c6", info:"Setze ein oder ersetze.", items:[...sample(pool("c6", "c6a"), 2).map(x => ({ ...x, choices:null })), ...sample(pool("c6", "c6b"), 1), ...sample(pool("c6", "c6c"), 2)] },

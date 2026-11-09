@@ -262,7 +262,28 @@ Was trinkt ihr? => Qu'est-ce que vous buvez ? // Que buvez-vous ?`}
   {h:"de + Vokal → d'", html:`
 <p>Vor einem Vokal (a, e, i, o, u) oder stummem h wird <b>de → d'</b>:</p>
 <div class="ex">[une bouteille d'eau|eine Flasche Wasser] [beaucoup d'œufs|viele Eier] [un pot d'olives|ein Glas Oliven]</div>
-<div class="note">Die Mengen-Formel: <b>Menge + de + Nomen ohne Artikel</b>.</div>`}
+<div class="note">Die Mengen-Formel: <b>Menge + de + Nomen ohne Artikel</b>.</div>`},
+  {h:"Gramm, Kilo & Liter", html:`
+<p>Am Markt kaufst du nach <b>Gewicht</b> (Gramm, Kilo) oder <b>Volumen</b> (Liter). Danach kommt immer <b>de / d'</b> ohne Artikel.</p>
+<table class="tbl"><tr><th>Menge</th><th>Französisch</th><th>Beispiel</th></tr>
+<tr><td>100 g</td><td>cent grammes</td><td>cent grammes de fromage</td></tr>
+<tr><td>200 g</td><td>deux cents grammes</td><td>deux cents grammes de jambon</td></tr>
+<tr><td>250 g</td><td>deux cent cinquante grammes</td><td>deux cent cinquante grammes de beurre</td></tr>
+<tr><td>500 g</td><td>une livre / un demi-kilo / cinq cents grammes</td><td>une livre de fraises</td></tr>
+<tr><td>1 kg</td><td>un kilo</td><td>un kilo de tomates</td></tr>
+<tr><td>1,5 kg</td><td>un kilo et demi</td><td>un kilo et demi de pommes de terre</td></tr>
+<tr><td>2 kg</td><td>deux kilos</td><td>deux kilos de pommes</td></tr>
+<tr><td>0,5 l</td><td>un demi-litre</td><td>un demi-litre de lait</td></tr>
+<tr><td>1 l / 2 l</td><td>un litre / deux litres</td><td>un litre d'eau</td></tr>
+<tr><td>6 Stück</td><td>une demi-douzaine</td><td>une demi-douzaine d'œufs</td></tr>
+<tr><td>12 Stück</td><td>une douzaine</td><td>une douzaine d'œufs</td></tr></table>
+<div class="warn"><b>une livre</b> (weiblich) = ein Pfund (500 g). <b>un livre</b> (männlich) = ein Buch!</div>
+<div class="warn"><b>cents</b> bekommt nur ein s, wenn keine Zahl folgt: deux cent<b>s</b> grammes, aber deux cent cinquante grammes. <b>cent</b> allein steht ohne „un“: cent grammes.</div>
+<div class="note">Mehrere Kilos, Gramm, Liter → Plural mit <b>s</b>: deux kilo<b>s</b>, trois litre<b>s</b>. Abkürzungen (kg, g, l) im Dialog lieber ausschreiben.</div>`},
+  {h:"Preise pro Kilo, Liter, Stück", html:`
+<p>Den Preis für <b>eine Einheit</b> sagst du mit dem <b>bestimmten Artikel</b>: le kilo, la livre, le litre, la pièce.</p>
+<div class="ex">[Les tomates coûtent trois euros le kilo.|Die Tomaten kosten drei Euro das Kilo.] [Le jambon, c'est deux euros les cent grammes.|Der Schinken kostet zwei Euro pro hundert Gramm.] [C'est combien, le kilo de cerises ?|Was kostet das Kilo Kirschen?] [Les melons sont à deux euros la pièce.|Die Melonen kosten zwei Euro das Stück.]</div>
+<div class="note">Preise sprechen: 3,50 € = [trois euros cinquante|drei Euro fünfzig] · 1,20 € = [un euro vingt|ein Euro zwanzig]</div>`}
   ],
   lessons:[
    {id:"c3a", t:"du, de la, de l', des", k:"gap", d:"Setze den Teilungsartikel ein.", tip:0, choices:["du","de la","de l'","des"], items:`
@@ -333,7 +354,51 @@ Er isst viele Erdbeeren. => Il mange beaucoup de fraises.
 Ich mag Schokolade. => J'aime le chocolat.
 Eine Flasche Milch, bitte. => Une bouteille de lait, s'il vous plaît.
 Es gibt kein Brot mehr. => Il n'y a plus de pain.
-Sie trinkt Orangensaft. => Elle boit du jus d'orange.`}
+Sie trinkt Orangensaft. => Elle boit du jus d'orange.`},
+   {id:"c3g", t:"Gramm, Kilo & Liter erkennen", k:"mc", d:"Wie sagt man das auf Französisch?", tip:5, items:`
+500 g Käse | *une livre de fromage ~ un livre de fromage ~ une livre du fromage | | une livre (f.) = Pfund. un livre = Buch!
+1 kg Äpfel | *un kilo de pommes ~ un kilo des pommes ~ une kilo de pommes | | le kilo ist männlich, danach nur de.
+200 g Schinken | *deux cents grammes de jambon ~ deux cent grammes de jambon ~ deux cents grammes du jambon | | 200 = deux cents (mit s, weil keine Zahl folgt).
+250 g Butter | *deux cent cinquante grammes de beurre ~ deux cents cinquante grammes de beurre ~ deux cent cinquante grammes du beurre | | Folgt eine Zahl, bleibt cent ohne s.
+1,5 kg Kartoffeln | *un kilo et demi de pommes de terre ~ un demi-kilo de pommes de terre ~ un kilo et demi des pommes de terre | | et demi = und ein halb. un demi-kilo = 500 g.
+½ Liter Milch | *un demi-litre de lait ~ une demi-litre de lait ~ un demi-litre du lait | | le litre ist männlich.
+12 Eier | *une douzaine d'œufs ~ un douzaine des œufs ~ une douzaine de œufs | | Vor Vokal: d'.
+2 Liter Wasser | *deux litres d'eau ~ deux litre d'eau ~ deux litres de l'eau | | Plural: litres. Vor Vokal: d'.
+100 g Käse | *cent grammes de fromage ~ un cent grammes de fromage ~ cents grammes de fromage | | 100 = cent, ohne „un“.
+6 Eier | *une demi-douzaine d'œufs ~ une demie douzaine d'œufs ~ six des œufs
+Wie viel kostet das Kilo? | *C'est combien, le kilo ? ~ C'est combien, un kilo de ? ~ Combien kilo coûte ?
+Die Kirschen kosten 6 € das Kilo. | *Les cerises coûtent six euros le kilo. ~ Les cerises coûtent six euros par le kilo. ~ Les cerises coûtent six euros de kilo. | | Preis pro Einheit: le kilo.`},
+   {id:"c3h", t:"Mengen ergänzen", k:"gap", d:"Ergänze die Mengenangabe.", tip:5, items:`
+{Am Obststand} Les fraises coûtent quatre euros ___ kilo. | le | Die Erdbeeren kosten vier Euro das Kilo. | Preis pro Einheit: le kilo, le litre, la pièce.
+Le jambon, c'est deux euros les cent ___. | grammes | Der Schinken kostet zwei Euro pro hundert Gramm.
+Je voudrais un kilo ___ demi de pommes de terre. | et | Ich hätte gern anderthalb Kilo Kartoffeln.
+Une ___ de fromage, s'il vous plaît. (500 g) | livre | Ein Pfund Käse, bitte.
+Il me faut un ___-litre de crème. (0,5 l) | demi | Ich brauche einen halben Liter Sahne.
+Je prends deux ___ de lait. (2 l) | litres | Ich nehme zwei Liter Milch. | Plural: litres.
+Pour le gâteau, il faut deux cent cinquante ___ de farine. (g) | grammes | Für den Kuchen braucht man 250 Gramm Mehl.
+Une ___ d'œufs, s'il vous plaît. (12 Stück) | douzaine | Ein Dutzend Eier, bitte.
+Mille grammes, c'est un ___. | kilo | Tausend Gramm sind ein Kilo.
+Le lait coûte un euro vingt ___ litre. | le | Die Milch kostet 1,20 € der Liter.
+Je voudrais deux ___ grammes de fromage. (200) | cents | Ich hätte gern 200 Gramm Käse. | deux cents – mit s, weil keine Zahl folgt.
+Trois kilos ___ oranges, s'il vous plaît. | d' | Drei Kilo Orangen, bitte.`},
+   {id:"c3i", t:"Schreib die Menge", k:"tr", d:"Schreib die Mengenangabe auf Französisch.", tip:5, items:`
+1 kg Tomaten => un kilo de tomates
+200 g Schinken => deux cents grammes de jambon // 200 grammes de jambon
+1,5 kg Kartoffeln => un kilo et demi de pommes de terre
+½ Liter Milch => un demi-litre de lait
+250 g Butter => deux cent cinquante grammes de beurre // 250 grammes de beurre
+12 Eier => une douzaine d'œufs // douze œufs
+2 Liter Wasser => deux litres d'eau
+100 g Käse => cent grammes de fromage // 100 grammes de fromage
+500 g Erdbeeren => une livre de fraises // un demi-kilo de fraises // cinq cents grammes de fraises // 500 grammes de fraises
+3 kg Äpfel => trois kilos de pommes`},
+   {id:"c3j", t:"Sätze mit Kilo & Gramm", k:"order", d:"Bilde den Satz.", tip:6, items:`
+Je voudrais deux cents grammes de jambon. | Ich hätte gern 200 Gramm Schinken. | +du
+Les tomates coûtent trois euros le kilo. | Die Tomaten kosten drei Euro das Kilo.
+Il faut un demi-litre de lait pour les crêpes. | Für Crêpes braucht man einen halben Liter Milch.
+Une livre de cerises, s'il vous plaît. | Ein Pfund Kirschen, bitte. | +livres
+J'achète un kilo et demi de pommes de terre. | Ich kaufe anderthalb Kilo Kartoffeln.
+Une douzaine d'œufs, c'est combien ? | Wie viel kostet ein Dutzend Eier?`}
   ]},
 
 /* ───────────── 4 ───────────── */

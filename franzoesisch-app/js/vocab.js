@@ -558,7 +558,16 @@ le petit-déjeuner|das Frühstück
 le déjeuner|das Mittagessen
 le dîner|das Abendessen
 Bon appétit !|Guten Appetit!
-le pique-nique|das Picknick`},
+le pique-nique|das Picknick
+le gramme|das Gramm
+le kilo|das Kilo
+le litre|der Liter
+un demi-kilo de|ein halbes Kilo
+un kilo et demi de|anderthalb Kilo
+un demi-litre de|ein halber Liter
+une douzaine de|ein Dutzend
+une demi-douzaine de|ein halbes Dutzend
+la pièce|das Stück`},
 
 { id:"b2u5", band:2, unit:5, title:"La mode", de:"Kleidung & Einkaufen", icon:"shirt", words:`
 les vêtements|die Kleidung
