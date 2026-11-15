@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Französisch lernen mit Découvertes 1–2: Lernpfad mit Sternen, Grammatik, Vokabeln und Klassenarbeit.">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171F38" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Carnet">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Carnet de Français</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&family=Playwrite+FR+Trad:wght@400&display=swap">
+<link rel="stylesheet" href="style.css?v=3c474fd2a8">
+<script>window.CARNET_WEB=true;</script>
+</head>
+<body>
+
+<div class="app">
+  <aside class="side">
+    <a href="#start" class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span><b>Carnet</b><small>de français</small></span></a>
+    <nav class="nav" aria-label="Hauptnavigation">
+      <a href="#start" data-k="start"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Start</span></a>
+      <a href="#checkliste" data-k="checkliste"><svg class="ic" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17"/></svg><span>Checkliste</span></a>
+      <a href="#vokabeln" data-k="vokabeln"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h12v13H4zM8 4h12v13"/></svg><span>Vokabeln</span></a>
+      <a href="#klassenarbeit" data-k="klassenarbeit"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5"/></svg><span>Arbeit</span></a>
+      <a href="#mehr" data-k="mehr"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Mehr</span></a>
+    </nav>
+    <div class="topstats" id="topstats"></div>
+  </aside>
+  <main id="main" class="main" tabindex="-1"></main>
+</div>
+
+<div id="player" class="player" hidden role="dialog" aria-modal="true" aria-labelledby="pl-title">
+  <div class="pl-top">
+    <button type="button" class="iconbtn" id="pl-close" aria-label="Aufgabe schließen"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="pl-prog"><div class="pl-t"><b id="pl-title"></b><span id="pl-count"></span></div><div class="pl-track"><i id="pl-bar"></i></div></div>
+  </div>
+  <div class="pl-body" id="pl-body"></div>
+  <div class="pl-foot"><div class="pl-btns"><button type="button" class="btn ghost" id="pl-idk">Weiß ich nicht</button><button type="button" class="btn good-b" id="pl-check" disabled>Prüfen</button></div></div>
+  <div id="pl-feedback" class="feedback" aria-live="polite"></div>
+</div>
+
+<div id="sheet" class="sheet" hidden><div class="sheet-card"><button type="button" class="iconbtn sheet-x" aria-label="Schließen"><svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><div id="sheet-body"></div></div></div>
+<div id="pop" class="pop" hidden role="dialog" aria-label="Übersetzung"></div>
+<div id="accents" class="accents" hidden aria-label="Akzente"></div>
+
+<script src="js/vocab.js?v=3314deeb7c"></script>
+<script src="js/verbs.js?v=5eafbc151e"></script>
+<script src="js/courses.js?v=f7a291155d"></script>
+<script src="js/texts.js?v=cb75e98a2b"></script>
+<script src="js/app.js?v=91b391f864"></script>
+<script>if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+</body>
+</html>
