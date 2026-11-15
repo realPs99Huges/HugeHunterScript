@@ -1070,7 +1070,21 @@ function vCustom() {
 }
 function vMore() {
   main().innerHTML = header("Mehr", "") + `<div class="morelist enter">
-   ${[["verben", "verb", "Verben", "Alle Tabellen in Präsens, Passé composé & Futur"], ["woerterbuch", "search", "Wörterbuch", "Suchen in beide Richtungen"], ["lernkartei", "box", "Lernkartei", "Wiederholen mit 5 Fächern"], ["eigene", "plus", "Eigene Vokabeln", "Wörter aus dem Buch hinzufügen"], ["kurs-c9", "book", "Lesetexte", "6 Texte mit Fragen"], ["kurs-c10", "basket", "Markt-Dialog", "Redemittel & Schreibwerkstatt"], ["einstellungen", "gear", "Einstellungen", "Design, Ton, Datum der Arbeit"]].map(([h, i, t, s]) => `<a href="#${h}" class="morerow">${I(i)}<span><b>${t}</b><small>${s}</small></span>${I("arrow", "chev2")}</a>`).join("")}</div>`;
+   ${[["verben", "verb", "Verben", "Alle Tabellen in Präsens, Passé composé & Futur"], ["woerterbuch", "search", "Wörterbuch", "Suchen in beide Richtungen"], ["lernkartei", "box", "Lernkartei", "Wiederholen mit 5 Fächern"], ["eigene", "plus", "Eigene Vokabeln", "Wörter aus dem Buch hinzufügen"], ["kurs-c9", "book", "Lesetexte", "6 Texte mit Fragen"], ["kurs-c10", "basket", "Markt-Dialog", "Redemittel & Schreibwerkstatt"], ["einstellungen", "gear", "Einstellungen", "Design, Ton, Datum der Arbeit"]].map(([h, i, t, s]) => `<a href="#${h}" class="morerow">${I(i)}<span><b>${t}</b><small>${s}</small></span>${I("arrow", "chev2")}</a>`).join("")}</div>
+  ${window.CARNET_WEB && !isStandalone() ? `<button type="button" class="installcard enter" style="--i:1" id="install">${I("phone")}<span><b>Als App installieren</b><small>Auf den Home-Bildschirm – startet wie eine echte App und geht auch offline.</small></span>${I("plus", "chev2")}</button>` : ""}`;
+  const ib = $("#install"); if (ib) ib.onclick = installApp;
+}
+let installEvt = null;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; });
+addEventListener("appinstalled", () => { installEvt = null; toast("App installiert!"); });
+const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+async function installApp() {
+  if (installEvt) { installEvt.prompt(); try { await installEvt.userChoice; } catch (e) {} installEvt = null; return; }
+  showSheet(`<h3>App installieren</h3><div class="rule">
+   <p><b>iPhone / iPad (Safari):</b> Tippe unten auf das Teilen-Symbol (Quadrat mit Pfeil) → <b>Zum Home-Bildschirm</b> → <b>Hinzufügen</b>.</p>
+   <p><b>Android (Chrome):</b> Tippe oben rechts auf <b>⋮</b> → <b>App installieren</b> oder <b>Zum Startbildschirm hinzufügen</b>.</p>
+   <p><b>Computer (Chrome / Edge):</b> Klicke rechts in der Adresszeile auf das Installieren-Symbol.</p>
+   <div class="note">Danach findest du „Carnet“ wie eine normale App auf deinem Gerät.</div></div>`);
 }
 function vSettings() {
   const st = S.settings;
